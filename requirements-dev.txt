@@ -1,0 +1,4 @@
+# Everything needed to develop and test: runtime + testing tools
+-r requirements.txt
+pytest==9.2.0
+httpx==0.28.1
