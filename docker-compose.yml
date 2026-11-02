@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .              # uses the Dockerfile in the project root
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend     # uses frontend/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000    # "api" = the service name above, NOT 127.0.0.1
+    depends_on:
+      - api               # start the API container first
