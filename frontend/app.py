@@ -1,10 +1,37 @@
 import os
-
+import time
 import requests
 import streamlit as st
 
 # Where the API lives. Set the API_URL environment variable to point elsewhere.
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+
+
+
+def check_api():
+    """Return the model version if the API answers, or None if it never does."""
+    # Fast path: an awake API answers almost instantly.
+    try:
+        response = requests.get(f"{API_URL}/health", timeout=5)
+        response.raise_for_status()
+        return response.json()["model_version"]
+    except requests.RequestException:
+        pass
+
+    # Slow path: free hosting puts idle services to sleep. Keep retrying for ~1 minute.
+       # Slow path: free hosting puts idle services to sleep. Keep retrying until a
+    # fixed deadline (about 75 seconds) so visitors never wait forever.
+    deadline = time.monotonic() + 75
+    with st.spinner("The API is waking up (free hosting). This can take up to a minute..."):
+        while time.monotonic() < deadline:
+            time.sleep(3)
+            try:
+                response = requests.get(f"{API_URL}/health", timeout=10)
+                response.raise_for_status()
+                return response.json()["model_version"]
+            except requests.RequestException:
+                continue
+    return None
 
 # Colours for each risk level. Change these to restyle the result card.
 RISK_COLORS = {"LOW": "#16a34a", "MEDIUM": "#d97706", "HIGH": "#dc2626"}
@@ -52,12 +79,11 @@ st.markdown(
 # ---------- Sidebar ----------
 with st.sidebar:
     st.header("API status")
-    try:
-        health = requests.get(f"{API_URL}/health", timeout=5)
-        health.raise_for_status()
-        st.success(f"Online (model v{health.json()['model_version']})")
-    except requests.RequestException:
-        st.error("Cannot reach the API. Is it running?")
+    version = check_api()
+    if version:
+        st.success(f"Online (model v{version})")
+    else:
+        st.error("Cannot reach the API. Please try again in a minute.")
     st.divider()
     st.caption(
         "A logistic regression model trained on the public Telco Customer Churn "
@@ -176,7 +202,7 @@ with right:
 
     if clicked:
         try:
-            response = requests.post(f"{API_URL}/predict", json=customer, timeout=10)
+            response = requests.post(f"{API_URL}/predict", json=customer, timeout=60)
         except requests.RequestException:
             st.session_state.result = None
             st.error("Cannot reach the API. Is it running?")

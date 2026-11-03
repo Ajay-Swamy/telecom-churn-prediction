@@ -61,7 +61,7 @@ def score(df: pd.DataFrame) -> list[dict]:
         chunk = records[start:start + CHUNK_SIZE]
         try:
             response = requests.post(f"{API_URL}/predict/batch",
-                                     json={"customers": chunk}, timeout=60)
+                                     json={"customers": chunk}, timeout=120)
         except requests.RequestException:
             st.error("Cannot reach the API. Is it running?")
             st.stop()
