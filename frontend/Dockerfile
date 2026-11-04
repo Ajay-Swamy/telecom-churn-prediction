@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY pages/ pages/
+COPY assets/ assets/
 
 RUN useradd --create-home appuser
 USER appuser
